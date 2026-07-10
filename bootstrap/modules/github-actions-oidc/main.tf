@@ -12,6 +12,10 @@ resource "aws_iam_openid_connect_provider" "github" {
 
   client_id_list  = ["sts.amazonaws.com"]
   thumbprint_list = var.github_oidc_thumbprints
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_iam_role" "github_actions_bootstrap" {
@@ -37,6 +41,10 @@ resource "aws_iam_role" "github_actions_bootstrap" {
       }
     ]
   })
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "github_actions_bootstrap" {
@@ -217,6 +225,10 @@ resource "aws_iam_role" "github_actions_env" {
       }
     ]
   })
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 data "aws_iam_policy_document" "github_actions_env_state_backend" {
