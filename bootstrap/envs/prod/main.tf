@@ -8,12 +8,12 @@ module "terraform_state_backend" {
 module "github_actions_oidc" {
   source = "../../modules/github-actions-oidc"
 
-  tfstate_bucket_arn                 = module.terraform_state_backend.tfstate_bucket_arn
-  bootstrap_tfstate_object_keys      = ["aws-infra/bootstrap/terraform.tfstate"]
-  tfstate_object_keys                = ["aws-infra/${local.env}/terraform.tfstate"]
-  github_actions_bootstrap_role_name = "github-actions-bootstrap"
-  github_actions_env_role_name       = "github-actions-terraform"
-  github_bootstrap_oidc_subjects = [
+  tfstate_bucket_arn                     = module.terraform_state_backend.tfstate_bucket_arn
+  bootstrap_env_tfstate_object_keys      = ["aws-infra/bootstrap-${local.env}/terraform.tfstate"]
+  env_tfstate_object_keys                = ["aws-infra/${local.env}/terraform.tfstate"]
+  github_actions_bootstrap_env_role_name = "github-actions-bootstrap-${local.env}"
+  github_actions_env_role_name           = "github-actions-${local.env}"
+  github_bootstrap_env_oidc_subjects = [
     "repo:kentaro-kiuchi/aws-infra:environment:bootstrap-${local.env}",
   ]
   github_env_oidc_subjects = [

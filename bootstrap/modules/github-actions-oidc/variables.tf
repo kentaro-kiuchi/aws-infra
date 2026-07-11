@@ -1,6 +1,6 @@
-variable "github_actions_bootstrap_role_name" {
+variable "github_actions_bootstrap_env_role_name" {
   type        = string
-  description = "IAM role name assumed by GitHub Actions for bootstrap Terraform."
+  description = "IAM role name assumed by GitHub Actions for bootstrap environment Terraform."
 }
 
 variable "github_actions_env_role_name" {
@@ -8,9 +8,9 @@ variable "github_actions_env_role_name" {
   description = "IAM role name assumed by GitHub Actions for environment Terraform."
 }
 
-variable "github_bootstrap_oidc_subjects" {
+variable "github_bootstrap_env_oidc_subjects" {
   type        = list(string)
-  description = "Allowed GitHub OIDC subject claims for assuming the bootstrap GitHub Actions role."
+  description = "Allowed GitHub OIDC subject claims for assuming the bootstrap environment GitHub Actions role."
 }
 
 variable "github_env_oidc_subjects" {
@@ -29,12 +29,12 @@ variable "tfstate_bucket_arn" {
   description = "S3 bucket ARN for Terraform state."
 }
 
-variable "bootstrap_tfstate_object_keys" {
+variable "bootstrap_env_tfstate_object_keys" {
   type        = list(string)
-  description = "S3 object keys for bootstrap Terraform state files that the bootstrap role may access."
+  description = "S3 object keys for bootstrap environment Terraform state files that the bootstrap environment role may access."
 }
 
-variable "tfstate_object_keys" {
+variable "env_tfstate_object_keys" {
   type        = list(string)
-  description = "S3 object keys for Terraform state files that the environment role may access."
+  description = "S3 object keys for environment Terraform state files that the environment role may access."
 }

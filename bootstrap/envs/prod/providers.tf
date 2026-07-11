@@ -18,7 +18,7 @@ provider "aws" {
       Project = "aws-infra"
       Env     = local.env
       Managed = "terraform"
-      Layer   = "bootstrap"
+      Layer   = "bootstrap-${local.env}"
     }
   }
 }

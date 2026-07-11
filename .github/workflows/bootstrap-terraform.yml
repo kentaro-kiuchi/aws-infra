@@ -1,4 +1,4 @@
-name: Bootstrap Terraform
+name: Bootstrap Environment Terraform
 
 on:
   pull_request:
@@ -39,7 +39,7 @@ env:
   TF_VERSION: 1.15.7
 
 concurrency:
-  group: bootstrap-terraform-${{ github.event.inputs.target_environment || 'dev' }}
+  group: bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
   cancel-in-progress: false
 
 jobs:
@@ -59,7 +59,7 @@ jobs:
       - name: Check Terraform formatting
         run: terraform fmt -check -recursive bootstrap
 
-      - name: Validate bootstrap modules and environments
+      - name: Validate bootstrap environment modules
         run: |
           for dir in bootstrap/envs/*; do
             [ -d "$dir" ] || continue
@@ -68,7 +68,7 @@ jobs:
           done
 
   plan:
-    name: Plan bootstrap
+    name: Plan bootstrap environment
     needs: validate
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
@@ -90,7 +90,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-bootstrap
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
 
       - name: Check remote backend
         run: |
@@ -107,7 +107,7 @@ jobs:
         run: terraform -chdir=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }} plan -input=false -no-color
 
   apply:
-    name: Apply bootstrap
+    name: Apply bootstrap environment
     needs: validate
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
@@ -129,7 +129,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-bootstrap
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
 
       - name: Check remote backend
         run: |
