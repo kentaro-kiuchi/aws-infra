@@ -3,7 +3,7 @@
 # terraform {
 #   backend "s3" {
 #     bucket              = "000000000000-tfstate"
-#     key                 = "aws-infra/bootstrap/terraform.tfstate"
+#     key                 = "aws-infra/bootstrap-prod/terraform.tfstate"
 #     region              = "ap-northeast-1"
 #     use_lockfile        = true
 #     encrypt             = true

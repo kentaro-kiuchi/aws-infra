@@ -9,8 +9,8 @@ resource "aws_iam_openid_connect_provider" "github" {
   }
 }
 
-resource "aws_iam_role" "github_actions_bootstrap" {
-  name = var.github_actions_bootstrap_role_name
+resource "aws_iam_role" "github_actions_bootstrap_env" {
+  name = var.github_actions_bootstrap_env_role_name
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -26,7 +26,7 @@ resource "aws_iam_role" "github_actions_bootstrap" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = var.github_bootstrap_oidc_subjects
+            "token.actions.githubusercontent.com:sub" = var.github_bootstrap_env_oidc_subjects
           }
         }
       }
@@ -38,9 +38,9 @@ resource "aws_iam_role" "github_actions_bootstrap" {
   }
 }
 
-data "aws_iam_policy_document" "github_actions_bootstrap" {
+data "aws_iam_policy_document" "github_actions_bootstrap_env" {
   statement {
-    sid    = "ReadWriteBootstrapTerraformState"
+    sid    = "ReadWriteBootstrapEnvTerraformState"
     effect = "Allow"
 
     actions = [
@@ -48,11 +48,11 @@ data "aws_iam_policy_document" "github_actions_bootstrap" {
       "s3:PutObject",
     ]
 
-    resources = [for key in var.bootstrap_tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}"]
+    resources = [for key in var.bootstrap_env_tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}"]
   }
 
   statement {
-    sid    = "ReadWriteBootstrapTerraformLockfile"
+    sid    = "ReadWriteBootstrapEnvTerraformLockfile"
     effect = "Allow"
 
     actions = [
@@ -61,11 +61,11 @@ data "aws_iam_policy_document" "github_actions_bootstrap" {
       "s3:DeleteObject",
     ]
 
-    resources = [for key in var.bootstrap_tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}.tflock"]
+    resources = [for key in var.bootstrap_env_tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}.tflock"]
   }
 
   statement {
-    sid    = "ListBootstrapTerraformStateBucket"
+    sid    = "ListBootstrapEnvTerraformStateBucket"
     effect = "Allow"
 
     actions = [
@@ -79,7 +79,7 @@ data "aws_iam_policy_document" "github_actions_bootstrap" {
     condition {
       test     = "StringEquals"
       variable = "s3:prefix"
-      values   = concat(var.bootstrap_tfstate_object_keys, [for key in var.bootstrap_tfstate_object_keys : "${key}.tflock"])
+      values   = concat(var.bootstrap_env_tfstate_object_keys, [for key in var.bootstrap_env_tfstate_object_keys : "${key}.tflock"])
     }
   }
 
@@ -173,7 +173,7 @@ data "aws_iam_policy_document" "github_actions_bootstrap" {
     ]
 
     resources = [
-      aws_iam_role.github_actions_bootstrap.arn,
+      aws_iam_role.github_actions_bootstrap_env.arn,
       aws_iam_role.github_actions_env.arn,
     ]
   }
@@ -190,10 +190,10 @@ data "aws_iam_policy_document" "github_actions_bootstrap" {
   }
 }
 
-resource "aws_iam_role_policy" "github_actions_bootstrap" {
-  name   = "${var.github_actions_bootstrap_role_name}-bootstrap"
-  role   = aws_iam_role.github_actions_bootstrap.id
-  policy = data.aws_iam_policy_document.github_actions_bootstrap.json
+resource "aws_iam_role_policy" "github_actions_bootstrap_env" {
+  name   = var.github_actions_bootstrap_env_role_name
+  role   = aws_iam_role.github_actions_bootstrap_env.id
+  policy = data.aws_iam_policy_document.github_actions_bootstrap_env.json
 }
 
 resource "aws_iam_role" "github_actions_env" {
@@ -235,7 +235,7 @@ data "aws_iam_policy_document" "github_actions_env_state_backend" {
       "s3:PutObject",
     ]
 
-    resources = [for key in var.tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}"]
+    resources = [for key in var.env_tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}"]
   }
 
   statement {
@@ -248,7 +248,7 @@ data "aws_iam_policy_document" "github_actions_env_state_backend" {
       "s3:DeleteObject",
     ]
 
-    resources = [for key in var.tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}.tflock"]
+    resources = [for key in var.env_tfstate_object_keys : "${var.tfstate_bucket_arn}/${key}.tflock"]
   }
 
   statement {
@@ -266,7 +266,7 @@ data "aws_iam_policy_document" "github_actions_env_state_backend" {
     condition {
       test     = "StringEquals"
       variable = "s3:prefix"
-      values   = concat(var.tfstate_object_keys, [for key in var.tfstate_object_keys : "${key}.tflock"])
+      values   = concat(var.env_tfstate_object_keys, [for key in var.env_tfstate_object_keys : "${key}.tflock"])
     }
   }
 }
@@ -277,7 +277,7 @@ resource "aws_iam_role_policy" "github_actions_env_state_backend" {
   policy = data.aws_iam_policy_document.github_actions_env_state_backend.json
 }
 
-data "aws_iam_policy_document" "github_actions_env_managed_resources" {
+data "aws_iam_policy_document" "github_actions_env" {
   statement {
     sid    = "ManageVpc"
     effect = "Allow"
@@ -307,8 +307,8 @@ data "aws_iam_policy_document" "github_actions_env_managed_resources" {
   }
 }
 
-resource "aws_iam_role_policy" "github_actions_env_managed_resources" {
-  name   = "${var.github_actions_env_role_name}-managed-resources"
+resource "aws_iam_role_policy" "github_actions_env" {
+  name   = var.github_actions_env_role_name
   role   = aws_iam_role.github_actions_env.id
-  policy = data.aws_iam_policy_document.github_actions_env_managed_resources.json
+  policy = data.aws_iam_policy_document.github_actions_env.json
 }
