@@ -10,7 +10,7 @@ terraform {
 }
 
 provider "aws" {
-  region              = "ap-northeast-1"
+  region              = local.aws_region
   allowed_account_ids = [local.aws_account_id]
 
   default_tags {
