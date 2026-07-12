@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: terraform-fmt
+        name: Terraform fmt
+        entry: terraform fmt -recursive bootstrap envs modules
+        language: system
+        pass_filenames: false
+        files: \.tf$
+
+      - id: terraform-tflint
+        name: TFLint
+        entry: tflint --recursive
+        language: system
+        pass_filenames: false
+        files: \.tf$
+
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        pass_filenames: false
+        files: ^\.github/workflows/.*\.ya?ml$
