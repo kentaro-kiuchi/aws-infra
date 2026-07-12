@@ -1,0 +1,154 @@
+name: Environments
+
+on:
+  pull_request:
+    paths:
+      - "envs/**"
+      - "modules/**"
+      - ".github/actions/**"
+      - ".github/workflows/envs.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "envs/**"
+      - "modules/**"
+      - ".github/actions/**"
+      - ".github/workflows/envs.yml"
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: "Environment to run"
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - prod
+      action:
+        description: "Run plan only, or plan and apply"
+        required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-1
+  TF_IN_AUTOMATION: "true"
+  TF_VERSION: 1.15.7
+
+concurrency:
+  group: env-${{ github.event.inputs.target_environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  format:
+    name: Check formatting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TF_VERSION }}
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive envs modules
+
+  validate:
+    name: Validate ${{ matrix.target-dir }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target-dir:
+          - envs/dev
+          - envs/prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TF_VERSION }}
+
+      - name: Validate environment
+        uses: ./.github/actions/terraform-validate
+        with:
+          target-dir: ${{ matrix.target-dir }}
+
+  plan:
+    name: Plan environment
+    needs:
+      - format
+      - validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
+    environment: ${{ github.event.inputs.target_environment || 'dev' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-${{ github.event.inputs.target_environment || 'dev' }}
+
+      - name: Terraform plan
+        uses: ./.github/actions/terraform-run
+        with:
+          target-dir: envs/${{ github.event.inputs.target_environment || 'dev' }}
+          action: plan
+
+  apply:
+    name: Apply environment
+    needs:
+      - format
+      - validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
+    environment: ${{ github.event.inputs.target_environment || 'dev' }}
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-${{ github.event.inputs.target_environment || 'dev' }}
+
+      - name: Terraform apply
+        uses: ./.github/actions/terraform-run
+        with:
+          target-dir: envs/${{ github.event.inputs.target_environment || 'dev' }}
+          action: apply
