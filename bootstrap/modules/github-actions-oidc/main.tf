@@ -305,10 +305,12 @@ data "aws_iam_policy_document" "github_actions_env" {
 
     actions = [
       "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:AuthorizeSecurityGroupEgress",
       "ec2:CreateSecurityGroup",
       "ec2:DeleteSecurityGroup",
       "ec2:DescribeSecurityGroups",
       "ec2:RevokeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupEgress",
     ]
 
     resources = ["*"]
