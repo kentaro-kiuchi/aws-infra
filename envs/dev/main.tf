@@ -3,4 +3,5 @@ module "vpc" {
 
   env      = local.env
   vpc_cidr = local.vpc_cidr
+  subnets  = local.subnets
 }
