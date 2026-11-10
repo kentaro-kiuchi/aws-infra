@@ -38,7 +38,7 @@ permissions:
 env:
   AWS_REGION: ap-northeast-1
   TF_IN_AUTOMATION: "true"
-  TF_VERSION: 1.15.7
+  TF_VERSION: 1.17.1
 
 concurrency:
   group: bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
@@ -47,7 +47,7 @@ concurrency:
 jobs:
   format:
     name: Check formatting
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -63,7 +63,7 @@ jobs:
 
   validate:
     name: Validate ${{ matrix.target-dir }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -90,7 +90,7 @@ jobs:
     needs:
       - format
       - validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
     environment: bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
     permissions:
@@ -123,7 +123,7 @@ jobs:
     needs:
       - format
       - validate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
     environment: bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
     permissions:
