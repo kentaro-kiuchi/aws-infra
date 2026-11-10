@@ -284,11 +284,15 @@ data "aws_iam_policy_document" "github_actions_env" {
 
     actions = [
       "ec2:CreateTags",
+      "ec2:CreateSubnet",
       "ec2:CreateVpc",
+      "ec2:DeleteSubnet",
       "ec2:DeleteTags",
       "ec2:DeleteVpc",
+      "ec2:DescribeSubnets",
       "ec2:DescribeVpcAttribute",
       "ec2:DescribeVpcs",
+      "ec2:ModifySubnetAttribute",
       "ec2:ModifyVpcAttribute",
     ]
 
