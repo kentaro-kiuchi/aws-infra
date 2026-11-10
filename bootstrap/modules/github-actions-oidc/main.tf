@@ -300,6 +300,72 @@ data "aws_iam_policy_document" "github_actions_env" {
   }
 
   statement {
+    sid    = "ManageDatabaseSecurityGroup"
+    effect = "Allow"
+
+    actions = [
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:CreateSecurityGroup",
+      "ec2:DeleteSecurityGroup",
+      "ec2:DescribeSecurityGroups",
+      "ec2:RevokeSecurityGroupIngress",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "CreateRdsServiceLinkedRole"
+    effect = "Allow"
+
+    actions = [
+      "iam:CreateServiceLinkedRole",
+    ]
+
+    resources = ["arn:aws:iam::*:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"]
+
+    condition {
+      test     = "StringLike"
+      variable = "iam:AWSServiceName"
+      values   = ["rds.amazonaws.com"]
+    }
+  }
+
+  statement {
+    sid    = "ManageRdsInstanceAndSubnetGroup"
+    effect = "Allow"
+
+    actions = [
+      "rds:AddTagsToResource",
+      "rds:CreateDBInstance",
+      "rds:CreateDBSubnetGroup",
+      "rds:DeleteDBInstance",
+      "rds:DeleteDBSubnetGroup",
+      "rds:DescribeDBInstances",
+      "rds:DescribeDBSubnetGroups",
+      "rds:ListTagsForResource",
+      "rds:ModifyDBInstance",
+      "rds:ModifyDBSubnetGroup",
+      "rds:RemoveTagsFromResource",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "ManageRdsMasterSecret"
+    effect = "Allow"
+
+    actions = [
+      "kms:DescribeKey",
+      "secretsmanager:CreateSecret",
+      "secretsmanager:TagResource",
+    ]
+
+    resources = ["*"]
+  }
+
+  statement {
     sid    = "ReadCallerIdentity"
     effect = "Allow"
 
