@@ -1,16 +1,18 @@
-name: Bootstrap Environment Terraform
+name: Bootstrap Environments
 
 on:
   pull_request:
     paths:
       - "bootstrap/**"
-      - ".github/workflows/bootstrap-terraform.yml"
+      - ".github/actions/**"
+      - ".github/workflows/bootstrap-envs.yml"
   push:
     branches:
       - main
     paths:
       - "bootstrap/**"
-      - ".github/workflows/bootstrap-terraform.yml"
+      - ".github/actions/**"
+      - ".github/workflows/bootstrap-envs.yml"
   workflow_dispatch:
     inputs:
       target_environment:
@@ -43,8 +45,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  validate:
-    name: Format and validate
+  format:
+    name: Check formatting
     runs-on: ubuntu-latest
 
     steps:
@@ -52,24 +54,42 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: ./.github/actions/terraform-setup
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform-version: ${{ env.TF_VERSION }}
 
       - name: Check Terraform formatting
         run: terraform fmt -check -recursive bootstrap
 
-      - name: Validate bootstrap environment modules
-        run: |
-          for dir in bootstrap/envs/*; do
-            [ -d "$dir" ] || continue
-            terraform -chdir="$dir" init -backend=false -input=false
-            terraform -chdir="$dir" validate
-          done
+  validate:
+    name: Validate ${{ matrix.target-dir }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target-dir:
+          - bootstrap/envs/dev
+          - bootstrap/envs/prod
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Terraform
+        uses: ./.github/actions/terraform-setup
+        with:
+          terraform-version: ${{ env.TF_VERSION }}
+
+      - name: Validate bootstrap environment
+        uses: ./.github/actions/terraform-validate
+        with:
+          target-dir: ${{ matrix.target-dir }}
 
   plan:
     name: Plan bootstrap environment
-    needs: validate
+    needs:
+      - format
+      - validate
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.action == 'plan')
     environment: bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
@@ -82,9 +102,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: ./.github/actions/terraform-setup
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform-version: ${{ env.TF_VERSION }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -92,23 +112,17 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
 
-      - name: Check remote backend
-        run: |
-          backend_file=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }}/backend.tf
-          if ! grep -Eq '^[[:space:]]*backend[[:space:]]+"s3"' "$backend_file"; then
-            echo "::error::S3 backend is not enabled in $backend_file"
-            exit 1
-          fi
-
-      - name: Terraform init
-        run: terraform -chdir=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }} init -input=false
-
       - name: Terraform plan
-        run: terraform -chdir=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }} plan -input=false -no-color
+        uses: ./.github/actions/terraform-run
+        with:
+          target-dir: bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }}
+          action: plan
 
   apply:
     name: Apply bootstrap environment
-    needs: validate
+    needs:
+      - format
+      - validate
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'apply')
     environment: bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
@@ -121,9 +135,9 @@ jobs:
         uses: actions/checkout@v7
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: ./.github/actions/terraform-setup
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform-version: ${{ env.TF_VERSION }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -131,19 +145,8 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID }}:role/github-actions-bootstrap-${{ github.event.inputs.target_environment || 'dev' }}
 
-      - name: Check remote backend
-        run: |
-          backend_file=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }}/backend.tf
-          if ! grep -Eq '^[[:space:]]*backend[[:space:]]+"s3"' "$backend_file"; then
-            echo "::error::S3 backend is not enabled in $backend_file"
-            exit 1
-          fi
-
-      - name: Terraform init
-        run: terraform -chdir=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }} init -input=false
-
-      - name: Terraform plan
-        run: terraform -chdir=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }} plan -input=false -no-color -out=tfplan
-
       - name: Terraform apply
-        run: terraform -chdir=bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }} apply -input=false -auto-approve tfplan
+        uses: ./.github/actions/terraform-run
+        with:
+          target-dir: bootstrap/envs/${{ github.event.inputs.target_environment || 'dev' }}
+          action: apply

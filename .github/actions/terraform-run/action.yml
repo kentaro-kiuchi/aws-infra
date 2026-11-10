@@ -1,0 +1,51 @@
+name: Run Terraform
+description: Run Terraform init, plan, and optionally apply for one environment directory.
+
+inputs:
+  target-dir:
+    description: Terraform environment directory to run.
+    required: true
+  action:
+    description: Terraform action to run. Use plan or apply.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Check action input
+      shell: bash
+      run: |
+        case "${{ inputs.action }}" in
+          plan|apply) ;;
+          *)
+            echo "::error::action must be either plan or apply"
+            exit 1
+            ;;
+        esac
+
+    - name: Check remote backend
+      shell: bash
+      run: |
+        backend_file="${{ inputs.target-dir }}/backend.tf"
+        if ! grep -Eq '^[[:space:]]*backend[[:space:]]+"s3"' "$backend_file"; then
+          echo "::error::S3 backend is not enabled in $backend_file"
+          exit 1
+        fi
+
+    - name: Terraform init
+      shell: bash
+      run: terraform -chdir="${{ inputs.target-dir }}" init -input=false
+
+    - name: Terraform plan
+      shell: bash
+      run: |
+        if [ "${{ inputs.action }}" = "apply" ]; then
+          terraform -chdir="${{ inputs.target-dir }}" plan -input=false -no-color -out=tfplan
+        else
+          terraform -chdir="${{ inputs.target-dir }}" plan -input=false -no-color
+        fi
+
+    - name: Terraform apply
+      if: inputs.action == 'apply'
+      shell: bash
+      run: terraform -chdir="${{ inputs.target-dir }}" apply -input=false -auto-approve tfplan

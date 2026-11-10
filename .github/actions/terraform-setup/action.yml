@@ -1,0 +1,15 @@
+name: Setup Terraform
+description: Install the Terraform CLI version used by this repository.
+
+inputs:
+  terraform-version:
+    description: Terraform version to install.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: ${{ inputs.terraform-version }}

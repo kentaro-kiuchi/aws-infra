@@ -1,0 +1,26 @@
+name: Validate Terraform
+description: Run Terraform validate for one root module directory.
+
+inputs:
+  target-dir:
+    description: Terraform root module directory to validate.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Terraform init
+      shell: bash
+      run: |
+        tf_data_dir="$(mktemp -d)"
+        echo "TF_DATA_DIR=$tf_data_dir" >> "$GITHUB_ENV"
+        TF_DATA_DIR="$tf_data_dir" AWS_EC2_METADATA_DISABLED=true terraform -chdir="${{ inputs.target-dir }}" init -backend=false -input=false
+
+    - name: Terraform validate
+      shell: bash
+      run: AWS_EC2_METADATA_DISABLED=true terraform -chdir="${{ inputs.target-dir }}" validate
+
+    - name: Cleanup Terraform data directory
+      if: always()
+      shell: bash
+      run: rm -rf "$TF_DATA_DIR"
